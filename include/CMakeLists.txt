@@ -1,0 +1,1 @@
+install(DIRECTORY "./EZEvent" DESTINATION "include/")

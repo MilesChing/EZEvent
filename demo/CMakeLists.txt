@@ -1,0 +1,1 @@
+add_executable(EZEventDemo EZEventDemo.cpp)

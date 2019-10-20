@@ -6,6 +6,16 @@ using namespace std;
 namespace EZEvent{
     template<typename EventParam> class Event;
 
+    template<typename EventParam> class EventListener{
+    public:
+        EventListener(void(*listener)(const EventParam&, void*), void* user_data = NULL);
+    private:
+        friend Event<EventParam>;
+        void Invoke(const EventParam& param);
+        void(*listener)(const EventParam&, void*);
+        void* user_data = NULL;
+    };
+
     template<typename EventParam> class EventTrigger{
     public:
         friend Event<EventParam>;
@@ -16,73 +26,62 @@ namespace EZEvent{
 
     template<typename EventParam> class Event{
     public:
+        typedef EventListener<EventParam> Listener;
         friend EventTrigger<EventParam>;
-        Event(EventTrigger<EventParam>* trigger);
+        void BindTrigger(EventTrigger<EventParam>* trigger);
         void ClearListeners();
-        void AddListener(function<void(const EventParam&)>& listener);
-        void AddListener(void(*listener)(const EventParam&));
-        void RemoveListener(function<void(const EventParam&)>& listener);
-        void RemoveListener(void(*listener)(const EventParam&));
-        Event<EventParam>& operator +=(function<void(const EventParam&)>& listener);
-        Event<EventParam>& operator -=(function<void(const EventParam&)>& listener);
-        Event<EventParam>& operator +=(void(*listener)(const EventParam&));
-        Event<EventParam>& operator -=(void(*listener)(const EventParam&));
-        Event<EventParam>& operator =(const Event<EventParam>& event) = delete;
+        void AddListener(const EventListener<EventParam>& listener);
+        void RemoveListener(const EventListener<EventParam>& listener);
+        Event<EventParam>& operator += (const EventListener<EventParam>& listener);
+        Event<EventParam>& operator -= (const EventListener<EventParam>& listener);
+        Event<EventParam>& operator = (const Event<EventParam>& event) = delete;
     private:
+        bool trigger_binded = false;
         void InnerInvoke(const EventParam& param);
-        list<function<void(const EventParam&)>> lambda_listeners;
-        list<void(*)(const EventParam&)> func_listeners;
+        list<EventListener<EventParam>> listeners;
     };
+
+    template<typename EventParam> EventListener<EventParam>::EventListener(void(*listener)(const EventParam&, void*), void* user_data){
+        this->listener = listener;
+        this->user_data = user_data;
+    }
+
+    template<typename EventParam> void EventListener<EventParam>::Invoke(const EventParam& param){
+        listener(param, user_data);
+    }
 
     template<typename EventParam> void EventTrigger<EventParam>::Invoke(const EventParam& param){
         if(binding_event) binding_event->InnerInvoke(param);
     }
 
-    template<typename EventParam> Event<EventParam>::Event(EventTrigger<EventParam>* trigger){
+    template<typename EventParam> void Event<EventParam>::BindTrigger(EventTrigger<EventParam>* trigger){
+        if(trigger_binded) return;
         trigger->binding_event = this;
+        trigger_binded = true;
     }
 
     template<typename EventParam> void Event<EventParam>::ClearListeners(){
-        lambda_listeners.clear();
-        func_listeners.clear();
+        listeners.clear();
     }
 
     template<typename EventParam> void Event<EventParam>::InnerInvoke(const EventParam& param){
-        for(auto& listener : lambda_listeners)
-            listener(param);
-        for(auto& listener : func_listeners)
-            listener(param);
+        for(auto& listener : listeners)
+            listener.Invoke(param);
     }
 
-    template<typename EventParam> void Event<EventParam>::AddListener(function<void(const EventParam&)>& listener){
-        lambda_listeners.push_back(listener);
+    template<typename EventParam> void Event<EventParam>::AddListener(const EventListener<EventParam>& listener){
+        listeners.push_back(listener);
     }
 
-    template<typename EventParam> void Event<EventParam>::AddListener(void(*listener)(const EventParam&)){
-        func_listeners.push_back(listener);
+    template<typename EventParam> void Event<EventParam>::RemoveListener(const EventListener<EventParam>& listener){
+        listeners.erase(listener);
     }
 
-    template<typename EventParam> void Event<EventParam>::RemoveListener(function<void(const EventParam&)>& listener){
-        lambda_listeners.erase(listener);
-    }
-
-    template<typename EventParam> void Event<EventParam>::RemoveListener(void(*listener)(const EventParam&)){
-        func_listeners.erase(listener);
-    }
-
-    template<typename EventParam> Event<EventParam>& Event<EventParam>::operator +=(function<void(const EventParam&)>& listener){
+    template<typename EventParam> Event<EventParam>& Event<EventParam>::operator +=(const EventListener<EventParam>& listener){
         AddListener(listener);
     }
 
-    template<typename EventParam> Event<EventParam>& Event<EventParam>::operator -=(function<void(const EventParam&)>& listener){
-        RemoveListener(listener);
-    }
-
-    template<typename EventParam> Event<EventParam>& Event<EventParam>::operator +=(void(*listener)(const EventParam&)){
-        AddListener(listener);
-    }
-
-    template<typename EventParam> Event<EventParam>& Event<EventParam>::operator -=(void(*listener)(const EventParam&)){
+    template<typename EventParam> Event<EventParam>& Event<EventParam>::operator -=(const EventListener<EventParam>& listener){
         RemoveListener(listener);
     }
 

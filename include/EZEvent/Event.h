@@ -6,16 +6,6 @@ using namespace std;
 namespace EZEvent{
     template<typename EventParam> class Event;
 
-    template<typename EventParam> class EventListener{
-    public:
-        EventListener(void(*listener)(const EventParam&, void*), void* user_data = NULL);
-    private:
-        friend Event<EventParam>;
-        void Invoke(const EventParam& param);
-        void(*listener)(const EventParam&, void*);
-        void* user_data = NULL;
-    };
-
     template<typename EventParam> class EventTrigger{
     public:
         friend Event<EventParam>;
@@ -26,29 +16,21 @@ namespace EZEvent{
 
     template<typename EventParam> class Event{
     public:
-        typedef EventListener<EventParam> Listener;
+        //typedef void(*Listener)(const EventParam&);
+        typedef std::function<void(const EventParam&)> Listener;
         friend EventTrigger<EventParam>;
         void BindTrigger(EventTrigger<EventParam>* trigger);
         void ClearListeners();
-        void AddListener(const EventListener<EventParam>& listener);
-        void RemoveListener(const EventListener<EventParam>& listener);
-        Event<EventParam>& operator += (const EventListener<EventParam>& listener);
-        Event<EventParam>& operator -= (const EventListener<EventParam>& listener);
+        void AddListener(const Listener& listener);
+        void RemoveListener(const Listener& listener);
+        Event<EventParam>& operator += (const Listener& listener);
+        Event<EventParam>& operator -= (const Listener& listener);
         Event<EventParam>& operator = (const Event<EventParam>& event) = delete;
     private:
         bool trigger_binded = false;
         void InnerInvoke(const EventParam& param);
-        list<EventListener<EventParam>> listeners;
+        list<Event<EventParam>::Listener> listeners;
     };
-
-    template<typename EventParam> EventListener<EventParam>::EventListener(void(*listener)(const EventParam&, void*), void* user_data){
-        this->listener = listener;
-        this->user_data = user_data;
-    }
-
-    template<typename EventParam> void EventListener<EventParam>::Invoke(const EventParam& param){
-        listener(param, user_data);
-    }
 
     template<typename EventParam> void EventTrigger<EventParam>::Invoke(const EventParam& param){
         if(binding_event) binding_event->InnerInvoke(param);
@@ -66,22 +48,22 @@ namespace EZEvent{
 
     template<typename EventParam> void Event<EventParam>::InnerInvoke(const EventParam& param){
         for(auto& listener : listeners)
-            listener.Invoke(param);
+            listener(param);
     }
 
-    template<typename EventParam> void Event<EventParam>::AddListener(const EventListener<EventParam>& listener){
+    template<typename EventParam> void Event<EventParam>::AddListener(const Event<EventParam>::Listener& listener){
         listeners.push_back(listener);
     }
 
-    template<typename EventParam> void Event<EventParam>::RemoveListener(const EventListener<EventParam>& listener){
+    template<typename EventParam> void Event<EventParam>::RemoveListener(const Event<EventParam>::Listener& listener){
         listeners.erase(listener);
     }
 
-    template<typename EventParam> Event<EventParam>& Event<EventParam>::operator +=(const EventListener<EventParam>& listener){
+    template<typename EventParam> Event<EventParam>& Event<EventParam>::operator +=(const Event<EventParam>::Listener& listener){
         AddListener(listener);
     }
 
-    template<typename EventParam> Event<EventParam>& Event<EventParam>::operator -=(const EventListener<EventParam>& listener){
+    template<typename EventParam> Event<EventParam>& Event<EventParam>::operator -=(const Event<EventParam>::Listener& listener){
         RemoveListener(listener);
     }
 

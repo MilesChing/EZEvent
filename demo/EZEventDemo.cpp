@@ -16,21 +16,18 @@ public:
     }
 }message_solver;
 
+void test_receiver(const string& message){
+    cout << "listener #2 Receive message \"" << message << "\"" << endl;
+}
+
 int main(){
-    int i = 0;
+    message_solver.MessageReceived += [](const string& message){
+        cout << "listener #1 Receive message \"" << message << "\"" << endl;
+    };  //Lambda Expression Listener
 
-    message_solver.MessageReceived += EZEvent::EventListener<string>([](const string& message, void* user_data){
-        int i = *(int*)user_data;
-        cout << "listener #1 Receive message \"" << message << "\" when i = " << i << endl;
-    }, &i);
-
-    message_solver.MessageReceived += EZEvent::EventListener<string>([](const string& message, void* user_data){
-        int i = *(int*)user_data;
-        cout << "listener #1 Receive message \"" << message << "\" when i = " << i << endl;
-    }, &i);
+    message_solver.MessageReceived += test_receiver;    //Function Listener
 
     while(true){
-        ++i;
         cout << "Send a message ([Q]Quit): ";
         string mes;
         cin >> mes;

@@ -25,20 +25,34 @@ sudo make install
 using namespace EZEvent;
 ~~~
 
-An event operation are completed with two instances: Event & EventTrigger. Declare a public Event member to support the Event subscription, and a private EventTrigger member to trigger the event internally.  
+An event operation are completed with two instances: Event & EventTrigger. Declare a public Event member to support the Event subscription, and a private EventTrigger member to trigger the event internally.
 
 ~~~cpp
 class MessageSolver{
 private:
     EZEvent::EventTrigger<string> MessageReceivedTrigger;
 public:
-	# build an Event like this to bind an Event with a Trigger
-    MessageSolver() : MessageReceivedTrigger(),
-        MessageReceived(&MessageReceivedTrigger){}
+    MessageSolver(){
+        // Bind a trigger with an event.
+        // Triggers and events can only be bound once.
+        MessageReceived.BindTrigger(&MessageReceivedTrigger);
+    }
     EZEvent::Event<string> MessageReceived;
+
     void SendMessage(string message){
+        //Invoke the event through the specific trigger
         MessageReceivedTrigger.Invoke(message);
     }
 };
+~~~
+
+Call `AddListener` or operator `+=` to register a listener. `RemoveListener` and operator `-=` is used to deregister a listener. Both Lambda expressions and function Pointers are supported:
+
+~~~cpp
+message_solver.MessageReceived += [](const string& message){
+    cout << "listener #1 Receive message \"" << message << "\"" << endl;
+};  //Lambda Expression Listener
+
+message_solver.MessageReceived += test_receiver;    //Function Listener
 ~~~
 

@@ -9,7 +9,7 @@ namespace EZEvent{
     template<typename EventParam> class EventTrigger{
     public:
         friend Event<EventParam>;
-        void Invoke(const EventParam& param);
+        void Invoke(const EventParam& param) const;
     private:
         Event<EventParam>* binding_event = NULL;
     };
@@ -28,11 +28,11 @@ namespace EZEvent{
         Event<EventParam>& operator = (const Event<EventParam>& event) = delete;
     private:
         bool trigger_binded = false;
-        void InnerInvoke(const EventParam& param);
+        void InnerInvoke(const EventParam& param) const;
         list<Event<EventParam>::Listener> listeners;
     };
 
-    template<typename EventParam> void EventTrigger<EventParam>::Invoke(const EventParam& param){
+    template<typename EventParam> void EventTrigger<EventParam>::Invoke(const EventParam& param) const{
         if(binding_event) binding_event->InnerInvoke(param);
     }
 
@@ -46,7 +46,7 @@ namespace EZEvent{
         listeners.clear();
     }
 
-    template<typename EventParam> void Event<EventParam>::InnerInvoke(const EventParam& param){
+    template<typename EventParam> void Event<EventParam>::InnerInvoke(const EventParam& param) const{
         for(auto& listener : listeners)
             listener(param);
     }
